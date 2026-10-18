@@ -10,6 +10,9 @@ def get_chat_llm(temperature: float = 0.0) -> ChatGroq:
         model=settings.GROQ_MODEL,
         temperature=temperature,
         streaming=True,
+        max_tokens=850,       # Guarantees compliance with Groq 1000 OTPM rate limit
+        max_retries=3,        # Automatic exponential backoff on network/rate blips
+        request_timeout=30.0, # Prevent indefinite socket hanging
         api_key=api_key
     )
 

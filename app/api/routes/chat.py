@@ -105,16 +105,32 @@ async def chat_stream_endpoint(
                 config=config,
                 stream_mode="messages"
             ):
-                # Detect tool call intent
-                if isinstance(message_chunk, AIMessage) and getattr(message_chunk, "tool_calls", None):
-                    for tc in message_chunk.tool_calls:
-                        tname = tc.get("name", "tool")
-                        if tname not in active_tools:
-                            active_tools.add(tname)
+                # Process AIMessage chunks
+                if isinstance(message_chunk, AIMessage):
+                    # 1. Stream any text content
+                    if message_chunk.content:
+                        text_token = message_chunk.content
+                        if isinstance(text_token, list):
+                            text_token = "".join(
+                                block.get("text", "") if isinstance(block, dict) else str(block)
+                                for block in text_token
+                            )
+                        if text_token:
                             yield {
-                                "event": "tool_start",
-                                "data": json.dumps({"tool_name": tname})
+                                "event": "token",
+                                "data": json.dumps({"token": text_token})
                             }
+
+                    # 2. Emit tool start signal when tool call is detected
+                    if getattr(message_chunk, "tool_calls", None):
+                        for tc in message_chunk.tool_calls:
+                            tname = tc.get("name", "tool")
+                            if tname not in active_tools:
+                                active_tools.add(tname)
+                                yield {
+                                    "event": "tool_start",
+                                    "data": json.dumps({"tool_name": tname})
+                                }
 
                 # Detect tool execution completion
                 elif isinstance(message_chunk, ToolMessage):
@@ -122,13 +138,6 @@ async def chat_stream_endpoint(
                     yield {
                         "event": "tool_end",
                         "data": json.dumps({"tool_name": tname})
-                    }
-
-                # Stream assistant text tokens
-                elif isinstance(message_chunk, AIMessage) and message_chunk.content:
-                    yield {
-                        "event": "token",
-                        "data": json.dumps({"token": message_chunk.content})
                     }
 
             # Final completion signal

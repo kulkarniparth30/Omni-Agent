@@ -453,13 +453,12 @@
           buffer = lines.pop(); // Keep incomplete line in buffer
 
           for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed) continue;
+            if (!line) continue;
 
-            if (trimmed.startsWith('event:')) {
-              currentEvent = trimmed.replace('event:', '').trim();
-            } else if (trimmed.startsWith('data:')) {
-              const dataStr = trimmed.replace('data:', '').trim();
+            if (line.startsWith('event:')) {
+              currentEvent = line.replace(/^event:\s*/, '').trim();
+            } else if (line.startsWith('data:')) {
+              const dataStr = line.replace(/^data:\s*/, '');
               let payload = {};
               try { payload = JSON.parse(dataStr); } catch (e) { payload = { text: dataStr }; }
 
