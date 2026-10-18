@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Omni-Agent | AI Assistant</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Marked for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- Highlight.js for code syntax highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            dark: {
+              900: '#0f1117',
+              800: '#171923',
+              700: '#1f2430',
+              600: '#2d3342'
+            },
+            brand: {
+              500: '#6366f1',
+              600: '#4f46e5'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+    
+    .prose pre { background: #111827; padding: 12px; border-radius: 8px; overflow-x: auto; margin: 8px 0; }
+    .prose code { color: #f43f5e; background: #1f2937; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+    .prose pre code { color: inherit; background: transparent; padding: 0; }
+    .prose table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+    .prose th, .prose td { border: 1px solid #374151; padding: 6px 12px; }
+    .prose th { background: #1f2937; }
+    .prose p { margin-bottom: 8px; line-height: 1.6; }
+    .prose ul, .prose ol { margin-left: 20px; margin-bottom: 8px; }
+    .prose ul { list-style-type: disc; }
+    .prose ol { list-style-type: decimal; }
+  </style>
+</head>
+<body class="bg-dark-900 text-gray-200 h-screen flex overflow-hidden font-sans antialiased">
+
+  <!-- SIDEBAR -->
+  <aside class="w-72 bg-dark-800 border-r border-dark-700 flex flex-col flex-shrink-0 select-none">
+    <!-- Brand Header -->
+    <div class="p-4 border-b border-dark-700 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center font-bold text-white shadow-lg shadow-brand-500/30">
+          Ω
+        </div>
+        <div>
+          <h1 class="font-bold text-sm tracking-wide text-white">Omni-Agent</h1>
+          <div id="backend-status" class="flex items-center text-xs text-yellow-400 space-x-1.5">
+            <span class="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></span>
+            <span>Connecting...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="p-3 space-y-2">
+      <button id="new-chat-btn" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-medium py-2 px-3 rounded-lg flex items-center justify-center space-x-2 transition duration-150 shadow-md shadow-brand-600/20 active:scale-[0.98]">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        <span>New Chat</span>
+      </button>
+
+      <!-- PDF Upload Button -->
+      <label class="w-full bg-dark-700 hover:bg-dark-600 text-gray-300 font-medium py-2 px-3 rounded-lg flex items-center justify-center space-x-2 cursor-pointer transition duration-150 border border-dark-600 active:scale-[0.98]">
+        <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+        <span id="pdf-btn-label">Upload PDF for Chat</span>
+        <input type="file" id="pdf-file-input" accept=".pdf" class="hidden">
+      </label>
+    </div>
+
+    <!-- Active Document Badge -->
+    <div id="doc-badge-container" class="px-3 hidden">
+      <div class="bg-indigo-950/60 border border-indigo-700/50 p-2.5 rounded-lg text-xs text-indigo-200 flex items-start space-x-2">
+        <svg class="w-4 h-4 text-indigo-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <div class="overflow-hidden">
+          <p id="doc-name" class="font-semibold truncate">document.pdf</p>
+          <p id="doc-details" class="text-indigo-400 text-[11px]">Indexed & ready for RAG</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Past Threads List -->
+    <div class="px-3 pt-3 pb-1 flex justify-between items-center text-xs font-semibold uppercase tracking-wider text-gray-400">
+      <span>Conversations</span>
+      <button id="refresh-threads-btn" title="Refresh" class="hover:text-gray-200">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      </button>
+    </div>
+    <div id="threads-list" class="flex-1 overflow-y-auto px-3 py-1 space-y-1">
+      <!-- Injected dynamically -->
+    </div>
+
+    <!-- Active Thread ID Footer -->
+    <div class="p-3 border-t border-dark-700 text-[11px] text-gray-500 text-center truncate">
+      Session: <code id="active-thread-id" class="text-gray-400 font-mono"></code>
+    </div>
+  </aside>
+
+  <!-- MAIN CHAT AREA -->
+  <main class="flex-1 flex flex-col h-full bg-dark-900 relative">
+    
+    <!-- Top Header Bar -->
+    <header class="h-14 border-b border-dark-700 flex items-center justify-between px-6 bg-dark-900/80 backdrop-blur z-10">
+      <div class="flex items-center space-x-2">
+        <span class="text-sm font-semibold text-gray-200">Active Conversation</span>
+        <span id="active-tools-tag" class="text-xs bg-dark-700 text-gray-400 px-2 py-0.5 rounded-full border border-dark-600">4 Tools Active</span>
+      </div>
+      <div class="flex items-center space-x-3 text-xs text-gray-400">
+        <span>FastAPI + LangGraph</span>
+        <a href="/docs" target="_blank" class="hover:text-indigo-400 underline transition">API Docs</a>
+      </div>
+    </header>
+
+    <!-- Messages Container -->
+    <div id="messages-container" class="flex-1 overflow-y-auto px-4 md:px-16 py-6 space-y-6">
+      <!-- Welcome Message -->
+      <div class="flex items-start space-x-3 max-w-3xl mx-auto">
+        <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow">
+          Ω
+        </div>
+        <div class="bg-dark-800 border border-dark-700 rounded-2xl rounded-tl-none p-4 text-sm text-gray-200 prose max-w-none shadow-sm">
+          <p>Hello! I am <strong>Omni-Agent</strong>.</p>
+          <p>I am equipped with specialized tools to assist you:</p>
+          <ul class="text-xs space-y-1 text-gray-300">
+            <li>📈 <strong>Stock Prices</strong>: <em>"What is the stock price of Apple?"</em></li>
+            <li>🔍 <strong>Web Search</strong>: <em>"Search the web for latest space discoveries"</em></li>
+            <li>📚 <strong>Academic Research</strong>: <em>"Find papers on attention mechanisms"</em></li>
+            <li>📄 <strong>Document RAG</strong>: Upload a PDF in the sidebar and ask questions about it!</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input Bar -->
+    <div class="p-4 bg-dark-900/90 border-t border-dark-700 flex-shrink-0">
+      <div class="max-w-3xl mx-auto relative flex items-end bg-dark-800 border border-dark-600 focus-within:border-brand-500 rounded-xl transition duration-150 shadow-lg">
+        <textarea
+          id="chat-input"
+          rows="1"
+          placeholder="Ask a question, query documents, check stocks..."
+          class="w-full bg-transparent text-gray-100 placeholder-gray-500 px-4 py-3 text-sm resize-none focus:outline-none max-h-40 overflow-y-auto"
+        ></textarea>
+        <button
+          id="send-btn"
+          disabled
+          class="m-2 p-2 rounded-lg bg-brand-600 hover:bg-brand-500 disabled:opacity-30 disabled:hover:bg-brand-600 text-white transition active:scale-95 flex-shrink-0"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+        </button>
+      </div>
+      <p class="text-[11px] text-gray-500 text-center mt-2">Omni-Agent streams real-time tokens over Server-Sent Events (SSE) with persistent FAISS RAG.</p>
+    </div>
+  </main>
+
+  <!-- JAVASCRIPT APP LOGIC -->
+  <script>
+    const API_BASE = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
+      ? `${window.location.origin}/api/v1`
+      : 'http://127.0.0.1:8000/api/v1';
+
+    let currentThreadId = localStorage.getItem('omni_thread_id') || crypto.randomUUID();
+    let isStreaming = false;
+
+    // DOM Elements
+    const chatInput = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('send-btn');
+    const messagesContainer = document.getElementById('messages-container');
+    const newChatBtn = document.getElementById('new-chat-btn');
+    const pdfFileInput = document.getElementById('pdf-file-input');
+    const pdfBtnLabel = document.getElementById('pdf-btn-label');
+    const docBadgeContainer = document.getElementById('doc-badge-container');
+    const docName = document.getElementById('doc-name');
+    const docDetails = document.getElementById('doc-details');
+    const threadsList = document.getElementById('threads-list');
+    const refreshThreadsBtn = document.getElementById('refresh-threads-btn');
+    const activeThreadIdEl = document.getElementById('active-thread-id');
+    const backendStatusEl = document.getElementById('backend-status');
+    const activeToolsTag = document.getElementById('active-tools-tag');
+
+    // Initialize
+    function init() {
+      activeThreadIdEl.textContent = currentThreadId.slice(0, 8) + '...';
+      localStorage.setItem('omni_thread_id', currentThreadId);
+      checkBackendHealth();
+      loadThreads();
+      loadThreadMessages(currentThreadId);
+
+      // Auto-resize textarea
+      chatInput.addEventListener('input', () => {
+        chatInput.style.height = 'auto';
+        chatInput.style.height = Math.min(chatInput.scrollHeight, 160) + 'px';
+        sendBtn.disabled = !chatInput.value.trim() || isStreaming;
+      });
+
+      // Handle Enter (Shift+Enter for newline)
+      chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          if (!sendBtn.disabled) sendMessage();
+        }
+      });
+
+      sendBtn.addEventListener('click', sendMessage);
+      newChatBtn.addEventListener('click', resetChat);
+      refreshThreadsBtn.addEventListener('click', loadThreads);
+      pdfFileInput.addEventListener('change', handlePdfUpload);
+    }
+
+    // Health Check
+    async function checkBackendHealth() {
+      try {
+        const res = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(3000) });
+        if (res.ok) {
+          const data = await res.json();
+          backendStatusEl.innerHTML = `
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span class="text-emerald-400">Online (${data.tools_count} tools)</span>
+          `;
+          activeToolsTag.textContent = `${data.tools_count} Tools Active`;
+        }
+      } catch (err) {
+        backendStatusEl.innerHTML = `
+          <span class="w-2 h-2 rounded-full bg-rose-400"></span>
+          <span class="text-rose-400">Backend Offline</span>
+        `;
+      }
+    }
+
+    // Reset / New Chat
+    function resetChat() {
+      currentThreadId = crypto.randomUUID();
+      localStorage.setItem('omni_thread_id', currentThreadId);
+      activeThreadIdEl.textContent = currentThreadId.slice(0, 8) + '...';
+      docBadgeContainer.classList.add('hidden');
+      messagesContainer.innerHTML = '';
+      appendWelcomeMessage();
+      loadThreads();
+    }
+
+    function appendWelcomeMessage() {
+      const welcome = document.createElement('div');
+      welcome.className = 'flex items-start space-x-3 max-w-3xl mx-auto';
+      welcome.innerHTML = `
+        <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow">Ω</div>
+        <div class="bg-dark-800 border border-dark-700 rounded-2xl rounded-tl-none p-4 text-sm text-gray-200 prose max-w-none shadow-sm">
+          <p>Started a fresh conversation session.</p>
+          <p>Ask a question or upload a document to get started!</p>
+        </div>
+      `;
+      messagesContainer.appendChild(welcome);
+    }
+
+    // PDF Ingestion
+    async function handlePdfUpload() {
+      const file = pdfFileInput.files[0];
+      if (!file) return;
+
+      pdfBtnLabel.textContent = "Uploading & Indexing...";
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const res = await fetch(`${API_BASE}/threads/${currentThreadId}/documents`, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || err.error || 'Upload failed');
+        }
+
+        const data = await res.json();
+        docName.textContent = data.filename;
+        docDetails.textContent = `${data.chunks} chunks (${data.documents} pages)`;
+        docBadgeContainer.classList.remove('hidden');
+        pdfBtnLabel.textContent = "Upload New PDF";
+
+        // Add assistant notification in chat
+        appendBotMessage(`✅ **${data.filename}** has been indexed into FAISS (${data.chunks} text chunks). You can now ask questions about this document!`);
+      } catch (err) {
+        alert(`PDF Upload Error: ${err.message}`);
+        pdfBtnLabel.textContent = "Upload PDF for Chat";
+      }
+    }
+
+    // Load Past Threads
+    async function loadThreads() {
+      try {
+        const res = await fetch(`${API_BASE}/threads`);
+        if (!res.ok) return;
+        const data = await res.json();
+        threadsList.innerHTML = '';
+
+        if (!data.threads || data.threads.length === 0) {
+          threadsList.innerHTML = '<p class="text-xs text-gray-500 py-2">No past conversations.</p>';
+          return;
+        }
+
+        data.threads.forEach(tId => {
+          const btn = document.createElement('button');
+          btn.className = `w-full text-left px-2.5 py-1.5 rounded-lg text-xs truncate transition flex items-center space-x-2 ${
+            tId === currentThreadId ? 'bg-dark-700 text-indigo-300 font-semibold border border-dark-600' : 'text-gray-400 hover:bg-dark-700/60 hover:text-gray-200'
+          }`;
+          btn.innerHTML = `
+            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+            <span class="truncate">${tId}</span>
+          `;
+          btn.onclick = () => switchThread(tId);
+          threadsList.appendChild(btn);
+        });
+      } catch (e) {}
+    }
+
+    // Switch Thread
+    async function switchThread(threadId) {
+      if (threadId === currentThreadId) return;
+      currentThreadId = threadId;
+      localStorage.setItem('omni_thread_id', currentThreadId);
+      activeThreadIdEl.textContent = currentThreadId.slice(0, 8) + '...';
+      docBadgeContainer.classList.add('hidden');
+      loadThreads();
+      loadThreadMessages(threadId);
+    }
+
+    // Load Thread Messages
+    async function loadThreadMessages(threadId) {
+      try {
+        const res = await fetch(`${API_BASE}/threads/${threadId}/messages`);
+        if (!res.ok) return;
+        const data = await res.json();
+        messagesContainer.innerHTML = '';
+
+        if (!data.messages || data.messages.length === 0) {
+          appendWelcomeMessage();
+          return;
+        }
+
+        data.messages.forEach(msg => {
+          if (msg.role === 'user') {
+            appendUserMessage(msg.content);
+          } else if (msg.role === 'assistant') {
+            appendBotMessage(msg.content);
+          }
+        });
+        scrollToBottom();
+      } catch (e) {}
+    }
+
+    // Append Messages to DOM
+    function appendUserMessage(text) {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'flex items-start justify-end space-x-3 max-w-3xl mx-auto';
+      msgDiv.innerHTML = `
+        <div class="bg-brand-600 text-white rounded-2xl rounded-tr-none px-4 py-2.5 text-sm max-w-[80%] shadow leading-relaxed">
+          ${escapeHtml(text)}
+        </div>
+      `;
+      messagesContainer.appendChild(msgDiv);
+      scrollToBottom();
+    }
+
+    function appendBotMessage(markdownText) {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'flex items-start space-x-3 max-w-3xl mx-auto';
+      msgDiv.innerHTML = `
+        <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow">Ω</div>
+        <div class="bg-dark-800 border border-dark-700 rounded-2xl rounded-tl-none p-4 text-sm text-gray-200 prose max-w-[85%] shadow-sm">
+          ${marked.parse(markdownText)}
+        </div>
+      `;
+      messagesContainer.appendChild(msgDiv);
+      scrollToBottom();
+    }
+
+    // Send Message with Native SSE Streaming
+    async function sendMessage() {
+      const query = chatInput.value.trim();
+      if (!query || isStreaming) return;
+
+      appendUserMessage(query);
+      chatInput.value = '';
+      chatInput.style.height = 'auto';
+      sendBtn.disabled = true;
+      isStreaming = true;
+
+      // Create streaming placeholder element
+      const streamDiv = document.createElement('div');
+      streamDiv.className = 'flex items-start space-x-3 max-w-3xl mx-auto';
+      streamDiv.innerHTML = `
+        <div class="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow">Ω</div>
+        <div class="flex-1 max-w-[85%] space-y-2">
+          <!-- Tool Status Pill -->
+          <div id="active-tool-pill" class="hidden inline-flex items-center space-x-1.5 px-2.5 py-1 bg-indigo-950/80 border border-indigo-700/60 rounded-full text-xs text-indigo-300">
+            <span class="w-2 h-2 rounded-full bg-indigo-400 animate-ping"></span>
+            <span id="active-tool-name">Using tool...</span>
+          </div>
+          <!-- Answer Markdown Container -->
+          <div id="streaming-content" class="bg-dark-800 border border-dark-700 rounded-2xl rounded-tl-none p-4 text-sm text-gray-200 prose max-w-none shadow-sm min-h-[48px]">
+            <span class="inline-block w-2 h-4 bg-indigo-400 animate-pulse align-middle"></span>
+          </div>
+        </div>
+      `;
+      messagesContainer.appendChild(streamDiv);
+      scrollToBottom();
+
+      const toolPill = streamDiv.querySelector('#active-tool-pill');
+      const toolNameEl = streamDiv.querySelector('#active-tool-name');
+      const contentEl = streamDiv.querySelector('#streaming-content');
+
+      let accumulatedMarkdown = '';
+
+      try {
+        const response = await fetch(`${API_BASE}/chat/stream`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: query, thread_id: currentThreadId })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server returned HTTP ${response.status}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let buffer = '';
+        let currentEvent = 'message';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop(); // Keep incomplete line in buffer
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
+
+            if (trimmed.startsWith('event:')) {
+              currentEvent = trimmed.replace('event:', '').trim();
+            } else if (trimmed.startsWith('data:')) {
+              const dataStr = trimmed.replace('data:', '').trim();
+              let payload = {};
+              try { payload = JSON.parse(dataStr); } catch (e) { payload = { text: dataStr }; }
+
+              if (currentEvent === 'tool_start') {
+                toolPill.classList.remove('hidden');
+                toolNameEl.textContent = `Using ${payload.tool_name}...`;
+                scrollToBottom();
+              } else if (currentEvent === 'tool_end') {
+                toolNameEl.textContent = `Tool ${payload.tool_name} completed`;
+                setTimeout(() => { toolPill.classList.add('hidden'); }, 1800);
+              } else if (currentEvent === 'token') {
+                accumulatedMarkdown += payload.token || '';
+                contentEl.innerHTML = marked.parse(accumulatedMarkdown) + '<span class="inline-block w-2 h-4 bg-indigo-400 animate-pulse ml-0.5 align-middle"></span>';
+                scrollToBottom();
+              } else if (currentEvent === 'done') {
+                contentEl.innerHTML = marked.parse(accumulatedMarkdown);
+                toolPill.classList.add('hidden');
+              } else if (currentEvent === 'error') {
+                contentEl.innerHTML += `<p class="text-rose-400 font-medium">⚠️ Error: ${payload.error || 'Stream error'}</p>`;
+              }
+            }
+          }
+        }
+
+        // Finalize rendering
+        contentEl.innerHTML = marked.parse(accumulatedMarkdown);
+        loadThreads();
+      } catch (err) {
+        contentEl.innerHTML = `<p class="text-rose-400 font-medium">❌ Connection Error: ${err.message}</p>`;
+      } finally {
+        isStreaming = false;
+        sendBtn.disabled = !chatInput.value.trim();
+        chatInput.focus();
+      }
+    }
+
+    function scrollToBottom() {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>

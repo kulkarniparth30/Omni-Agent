@@ -2,8 +2,9 @@ from contextlib import asynccontextmanager
 import logging
 import aiosqlite
 from fastapi import FastAPI, Request, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from pathlib import Path
 
 from app.config import get_settings
 from app.core.middleware import RequestCorrelationMiddleware
@@ -135,6 +136,14 @@ def create_application() -> FastAPI:
 
     # Also register /health at root for cloud health checkers
     app.include_router(health_router)
+
+    # Serve modern single-page web UI at root '/'
+    @app.get("/", include_in_schema=False)
+    async def serve_ui():
+        ui_path = Path("ui/index.html")
+        if ui_path.exists():
+            return FileResponse(ui_path)
+        return {"status": "ok", "message": "Omni-Agent API is running. Visit /docs for documentation."}
 
     return app
 
