@@ -10,6 +10,7 @@ from app.core.middleware import RequestCorrelationMiddleware
 from app.core.exceptions import ToolBotException
 from app.tools import get_all_tools, load_mcp_tools
 from app.agent.graph import build_graph
+from app.services.pdf_store import list_persisted_threads
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 
 # Import routes
@@ -53,7 +54,11 @@ async def lifespan(app: FastAPI):
     logger.info("Compiling LangGraph conversation engine...")
     agent = build_graph(tools=all_tools, checkpointer=checkpointer)
 
-    # 5. Attach shared resources to app.state
+    # 5. Check for persisted PDF indexes
+    persisted_docs = list_persisted_threads()
+    logger.info("Found %d persisted PDF document index(es) on disk: %s", len(persisted_docs), persisted_docs)
+
+    # 6. Attach shared resources to app.state
     app.state.db_conn = db_conn
     app.state.checkpointer = checkpointer
     app.state.tools = all_tools
