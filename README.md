@@ -403,18 +403,37 @@ GOOGLE_API_KEY=your_gemini_api_key_here
 ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key_here
 ```
 
-### 3. Launch the Backend API
+### 3. Launch with Docker Compose (Recommended for Production)
+The easiest way to run Omni-Agent alongside an isolated Redis 7 instance with automatic healthchecks and volume persistence:
+```bash
+docker compose up -d --build
+```
+- API & Modern Web UI: **`http://localhost:8000`**
+- Interactive Swagger Docs: **`http://localhost:8000/docs`**
+- Redis Cache: **`localhost:6379`**
+
+### 4. Or Run Locally with Python
+
+**Start the FastAPI Backend:**
 ```powershell
 uvicorn app.main:app --reload --port 8000
 ```
-Interactive API docs are available at: **`http://localhost:8000/docs`**
 
-### 4. Launch the Streamlit Frontend
-In a second terminal window:
+**Access the Web Interfaces:**
+- **Blazing Fast Modern Web UI**: Served directly at **`http://localhost:8000`** (built with Tailwind CSS, native SSE streaming, auto-reconnect, and FAISS document badges).
+- **Classic Streamlit UI** (Optional):
 ```powershell
 streamlit run ui/streamlit_app.py --server.port 8501
 ```
-Open **`http://localhost:8501`** to use the application.
+
+---
+
+## 🛡️ Rate Limiting & In-Memory Caching (Redis)
+
+Omni-Agent includes production defense layers:
+- **Sliding-Window Rate Limiter**: Enforces atomic per-IP request quotas (`RATE_LIMIT_PER_MINUTE=60` by default) using Redis pipelines (`INCR`, `EXPIRE`, `TTL`). Excess traffic receives an `HTTP 429 Too Many Requests` response with a standard `Retry-After` header.
+- **Volatile Tool-Output Cache**: Tools like Alpha Vantage (`get_stock_price`) are automatically cached in-memory/Redis for 5 minutes (TTL=300s) to prevent exceeding free-tier rate limits.
+- **Graceful Degradation**: If Redis is unreachable, the system automatically falls back to in-memory processing without throwing unhandled exceptions.
 
 ---
 
