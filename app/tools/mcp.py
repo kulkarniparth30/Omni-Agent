@@ -55,11 +55,12 @@ async def load_mcp_tools() -> List[BaseTool]:
         logger.info("No MCP servers configured.")
         return []
 
+    import asyncio
     try:
         client = MultiServerMCPClient(server_configs)
-        tools = await client.get_tools()
+        tools = await asyncio.wait_for(client.get_tools(), timeout=4.0)
         logger.info("Successfully loaded %d MCP tools: %s", len(tools), [t.name for t in tools])
         return tools
     except Exception as exc:
-        logger.warning("Could not connect to MCP servers: %s. Continuing without MCP tools.", exc)
+        logger.warning("MCP servers connection timed out or failed: %s. Continuing with built-in tools.", exc)
         return []
