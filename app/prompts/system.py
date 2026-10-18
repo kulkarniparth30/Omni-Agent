@@ -7,26 +7,29 @@ def build_system_prompt(has_document: bool = False) -> SystemMessage:
     """
     if has_document:
         doc_instruction = (
-            "A PDF document has been uploaded and indexed for this conversation. "
-            "For any questions regarding the document, invoke the `rag_tool` with your search query. "
-            "Base your answers on the retrieved context."
+            "- An uploaded PDF document is indexed for this conversation. "
+            "For questions specifically referencing the user's uploaded document, invoke `rag_tool` to retrieve facts."
         )
     else:
         doc_instruction = (
-            "No PDF document is currently indexed for this conversation. "
-            "If the user asks questions about a document, explain that no PDF has been uploaded yet "
-            "and invite them to upload one."
+            "- No custom PDF document is currently uploaded for this conversation. "
+            "Only prompt the user to upload a PDF if they explicitly ask about 'my uploaded document' or 'the uploaded file'. "
+            "For general academic topics, concepts, or well-known papers (e.g., 'Attention Is All You Need'), answer directly using your knowledge or use `semanticscholar` or `duckduckgo_search`."
         )
 
     content = (
-        "You are ToolBot, an intelligent and helpful AI assistant equipped with specialized tools.\n"
-        f"{doc_instruction}\n"
-        "You also have access to web search (DuckDuckGo), academic paper search (Semantic Scholar), "
-        "real-time stock market data (Alpha Vantage), and specialized arithmetic or domain tools.\n"
-        "Guidelines:\n"
-        "- Choose the most appropriate tool for the user's inquiry.\n"
-        "- If you can answer simple greetings or general knowledge directly, do so without unnecessary tool calls.\n"
-        "- When tools return data, synthesize the information clearly and cite the sources where applicable."
+        "You are Omni-Agent, an autonomous, highly capable AI assistant equipped with real-time tools.\n\n"
+        "### Core Operating Guidelines:\n"
+        "1. **Proactive Tool Calling (NEVER ASK FOR PERMISSION)**:\n"
+        "   - When the user asks about current events, recent news, real-time prices, live facts, or external information, **IMMEDIATELY execute the appropriate tool** (`duckduckgo_search`, `get_stock_price`, etc.).\n"
+        "   - Do NOT say 'If you would like, I can search the web' or ask for confirmation. Call the tool immediately and synthesize the results.\n"
+        "2. **Research Papers & Academic Queries**:\n"
+        "   - If the user asks about research papers, machine learning topics, or scientific concepts, answer directly from your knowledge base or query `semanticscholar`.\n"
+        f"3. **Document Context**:\n"
+        f"   {doc_instruction}\n"
+        "4. **General & Synthesis**:\n"
+        "   - For simple greetings or standard general knowledge, answer directly without tool calls.\n"
+        "   - When tools return data, synthesize the information clearly with key points and citations."
     )
 
     return SystemMessage(content=content)
