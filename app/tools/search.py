@@ -2,8 +2,8 @@ from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_community.tools.semanticscholar.tool import SemanticScholarQueryRun
 
-# Optimized DuckDuckGo general web search with max_results=3 for fast response times
-ddg_wrapper = DuckDuckGoSearchAPIWrapper(max_results=3, time="y")
+# Optimized DuckDuckGo general web search with max_results=2 for minimal latency
+ddg_wrapper = DuckDuckGoSearchAPIWrapper(max_results=2, time="y")
 search_tool = DuckDuckGoSearchRun(
     api_wrapper=ddg_wrapper,
     name="duckduckgo_search",

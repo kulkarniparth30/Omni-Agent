@@ -26,14 +26,15 @@ def build_system_prompt(has_document: bool = False, doc_metadata: Optional[dict]
         "### Core Operating Guidelines:\n"
         "1. **Document & Resume Context (CRITICAL)**:\n"
         f"   {doc_instruction}\n"
-        "2. **Proactive Tool Calling (NEVER ASK FOR PERMISSION)**:\n"
-        "   - When the user asks about current events, recent news, real-time prices, live facts, or external information, **IMMEDIATELY execute the appropriate tool** (`duckduckgo_search`, `get_stock_price`, etc.).\n"
-        "   - Do NOT say 'If you would like, I can search the web' or ask for confirmation. Call the tool immediately and synthesize the results.\n"
-        "3. **Research Papers & Academic Queries**:\n"
-        "   - If the user asks about research papers, machine learning topics, or scientific concepts, answer directly from your knowledge base or query `semanticscholar`.\n"
-        "4. **General & Synthesis**:\n"
-        "   - For simple greetings or standard general knowledge, answer directly without tool calls.\n"
-        "   - When tools return data, synthesize the information clearly with key points and citations."
+        "2. **Zero-Preamble Proactive Tool Calling (CRITICAL FOR LOW LATENCY)**:\n"
+        "   - When a tool is needed, **invoke the tool IMMEDIATELY without outputting conversational filler** (e.g. do NOT say 'Let me research...', 'I will check...', or 'Let me get more data...').\n"
+        "   - Never ask for user permission to search or query. Call the tool directly in your first turn.\n"
+        "3. **Single-Hop Synthesis (Prevent Latency Lag)**:\n"
+        "   - Execute at most ONE search or document lookup per user query. Do NOT chain multiple consecutive searches.\n"
+        "   - As soon as tool data is returned, IMMEDIATELY synthesize and output your final, comprehensive response.\n"
+        "4. **Research Papers & General Knowledge**:\n"
+        "   - For general academic topics, system design, career roadmaps, or interview prep, rely on your rich internal knowledge to give detailed, structured answers.\n"
+        "   - For simple greetings, respond directly and concisely without any tool calls."
     )
 
     return SystemMessage(content=content)
