@@ -7,3 +7,4 @@ class HealthResponse(BaseModel):
     environment: str = Field(..., description="Application runtime environment")
     tools_count: int = Field(..., description="Number of active tools registered in the agent")
     available_tools: List[str] = Field(default_factory=list, description="Names of available tools")
+    redis_status: str = Field(default="offline", description="Status of Redis connection (online / offline)")

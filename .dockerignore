@@ -1,0 +1,31 @@
+# Git & IDE
+.git/
+.gitignore
+.vscode/
+.idea/
+*.swp
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Testing & Evals
+.pytest_cache/
+tests/
+evals/results/
+evals/datasets/
+
+# Local databases & secrets
+.env
+data/indexes/
+data/*.db
+chatbot.db
+*.log

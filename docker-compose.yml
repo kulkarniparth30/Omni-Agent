@@ -1,0 +1,66 @@
+services:
+  # ============================================================================
+  # Omni-Agent FastAPI Application
+  # ============================================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: omni-agent-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - APP_ENV=production
+      - DATABASE_PATH=/app/data/chatbot.db
+      - INDEXES_DIR=/app/data/indexes
+    env_file:
+      - .env
+    volumes:
+      # Persist FAISS indexes and SQLite conversation memory across restarts
+      - omni_data:/app/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - omni_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ============================================================================
+  # In-Memory Cache & Rate Limiting Store
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: omni-agent-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - omni_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+# ==============================================================================
+# Persistent Volumes & Private Bridge Network
+# ==============================================================================
+volumes:
+  omni_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  omni_network:
+    driver: bridge

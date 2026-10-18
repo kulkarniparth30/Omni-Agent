@@ -9,6 +9,7 @@ from pathlib import Path
 from app.config import get_settings
 from app.core.middleware import RequestCorrelationMiddleware
 from app.core.exceptions import ToolBotException
+from app.core.redis import init_redis, close_redis
 from app.tools import get_all_tools, load_mcp_tools
 from app.agent.graph import build_graph
 from app.services.pdf_store import list_persisted_threads
@@ -59,7 +60,10 @@ async def lifespan(app: FastAPI):
     persisted_docs = list_persisted_threads()
     logger.info("Found %d persisted PDF document index(es) on disk: %s", len(persisted_docs), persisted_docs)
 
-    # 6. Attach shared resources to app.state
+    # 6. Initialize Redis connection pool (with graceful fallback if offline)
+    await init_redis()
+
+    # 7. Attach shared resources to app.state
     app.state.db_conn = db_conn
     app.state.checkpointer = checkpointer
     app.state.tools = all_tools
@@ -70,6 +74,7 @@ async def lifespan(app: FastAPI):
 
     # --- SHUTDOWN CLEANUP ---
     logger.info("Shutting down ToolBot API service...")
+    await close_redis()
     if hasattr(app.state, "db_conn") and app.state.db_conn:
         await app.state.db_conn.close()
         logger.info("SQLite connection closed.")

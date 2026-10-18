@@ -35,6 +35,12 @@ class Settings(BaseSettings):
     DATABASE_PATH: str = "chatbot.db"
     INDEXES_DIR: Path = Path("data/indexes")
 
+    # Redis Cache & Rate Limiting
+    REDIS_URL: Optional[str] = "redis://localhost:6379/0"
+    REDIS_ENABLED: bool = True
+    RATE_LIMIT_PER_MINUTE: int = 60
+    TOOL_CACHE_TTL_SECONDS: int = 300
+
     # API Settings
     APP_ENV: str = "development"
     LOG_LEVEL: str = "INFO"

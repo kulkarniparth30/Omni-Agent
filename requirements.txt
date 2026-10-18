@@ -18,6 +18,7 @@ requests>=2.31.0
 
 # Database & Async Persistence
 aiosqlite>=0.20.0
+redis>=5.0.0
 
 # FastAPI API Layer
 fastapi>=0.115.0

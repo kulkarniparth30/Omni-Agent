@@ -1,25 +1,37 @@
 import time
 import json
 from typing import Any, List, Set
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sse_starlette.sse import EventSourceResponse
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 
 from app.schemas.chat import ChatRequest, ChatResponse
 from app.api.deps import get_agent
 from app.core.exceptions import LLMExecutionError
+from app.core.redis import check_rate_limit
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
 @router.post("", response_model=ChatResponse)
 async def chat_endpoint(
     payload: ChatRequest,
+    request: Request,
     agent: Any = Depends(get_agent)
 ):
     """
     Synchronous / non-streaming chat turn.
-    Invokes the agent graph, records all tools executed, and returns the final response.
+    Protected by Redis sliding-window rate limiter.
     """
+    # Rate Limiting Guard
+    client_ip = request.client.host if request.client else "unknown_client"
+    allowed, current_count, retry_after = await check_rate_limit(client_ip)
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Rate limit exceeded ({current_count} requests/min). Please retry after {retry_after} seconds.",
+            headers={"Retry-After": str(retry_after)}
+        )
+
     config = {
         "configurable": {"thread_id": payload.thread_id},
         "metadata": {"thread_id": payload.thread_id},
@@ -62,12 +74,23 @@ async def chat_endpoint(
 @router.post("/stream")
 async def chat_stream_endpoint(
     payload: ChatRequest,
+    request: Request,
     agent: Any = Depends(get_agent)
 ):
     """
     Server-Sent Events (SSE) streaming endpoint.
     Streams individual tokens and tool lifecycle events (tool_start, tool_end, token, done).
+    Protected by Redis sliding-window rate limiter.
     """
+    # Rate Limiting Guard
+    client_ip = request.client.host if request.client else "unknown_client"
+    allowed, current_count, retry_after = await check_rate_limit(client_ip)
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Rate limit exceeded ({current_count} requests/min). Please retry after {retry_after} seconds.",
+            headers={"Retry-After": str(retry_after)}
+        )
     config = {
         "configurable": {"thread_id": payload.thread_id},
         "metadata": {"thread_id": payload.thread_id},
