@@ -8,7 +8,7 @@ from langchain_core.runnables import RunnableConfig
 from app.agent.state import ChatState
 from app.agent.llm import get_chat_llm
 from app.prompts.system import build_system_prompt
-from app.services.pdf_store import has_document
+from app.services.pdf_store import has_document, get_document_metadata
 
 def build_graph(
     tools: Sequence[BaseTool],
@@ -35,7 +35,8 @@ def build_graph(
 
         # Determine if a PDF is indexed for this thread to tailor system guidance
         doc_exists = has_document(thread_id)
-        sys_msg = build_system_prompt(has_document=doc_exists)
+        doc_meta = get_document_metadata(thread_id) if doc_exists else None
+        sys_msg = build_system_prompt(has_document=doc_exists, doc_metadata=doc_meta)
 
         # Exclude previous system messages so they don't pile up
         history = [m for m in state["messages"] if not isinstance(m, SystemMessage)]

@@ -6,8 +6,8 @@ from app.services.pdf_store import get_retriever, get_document_metadata
 @tool
 def rag_tool(query: str, config: RunnableConfig) -> dict:
     """
-    Retrieve relevant excerpts and answers from the uploaded PDF document for this conversation.
-    Use this tool whenever the user asks about the document's content, summaries, or specific details.
+    Retrieve relevant excerpts, sections, text, work experience, or skills from the uploaded PDF document (e.g. resume, CV, paper, or report) for this conversation.
+    ALWAYS invoke this tool whenever the user asks questions about their uploaded document, resume, qualifications, skills, gaps, or content from the file.
     """
     # Extract the thread_id securely from the execution context, NOT from the LLM arguments
     thread_id = None
